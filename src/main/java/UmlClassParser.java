@@ -28,8 +28,8 @@ public class UmlClassParser {
 		this.outputFile = outputFile;
 		System.out.println("JavaParser Module");
         map = new HashMap<String, Boolean>();
-        mapClassConn = new HashMap<String, String>();
-        yumlCode = "";
+        //mapClassConn = new HashMap<String, String>();
+        //yumlCode = "";
 	}
 
 	public void parse() throws Exception{
