@@ -1,0 +1,1 @@
+[Hello1|-str:String;+getStr():String;+setStr(String value)]

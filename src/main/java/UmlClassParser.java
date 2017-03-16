@@ -21,21 +21,45 @@ public class UmlClassParser {
     HashMap<String, Boolean> map;
     HashMap<String, String> mapClassConn;
 	ArrayList<CompilationUnit> compilationunitArray;
-	String yumlCode;
+	String output;
 	
 	UmlClassParser(File srcFolder, String outputFile){
 		this.srcFolder = srcFolder;
 		this.outputFile = outputFile;
 		System.out.println("JavaParser Module");
-        map = new HashMap<String, Boolean>();
-        //mapClassConn = new HashMap<String, String>();
-        //yumlCode = "";
 	}
 
 	public void parse() throws Exception{
 		compilationunitArray=readFiles(srcFolder);
+		output= getDetails(compilationunitArray);
+		System.out.println("Output is "+output);
+		
 	}
-
+	
+   
+    private String getDetails(ArrayList<CompilationUnit> compilationunitArray) {
+    	String output="";
+        for (CompilationUnit cu : compilationunitArray) {
+            List<TypeDeclaration<?>> gt = cu.getTypes();
+            for (Node n : gt) {
+                ClassOrInterfaceDeclaration coi = (ClassOrInterfaceDeclaration) n;
+                if (coi.isInterface()){
+                	System.out.println(coi.getName()+" "+coi.isInterface());
+                	output+=" "+coi.getName();
+                }
+                else{
+                	System.out.println(coi.getName()+" "+coi.isInterface());
+                	output+=" "+coi.getName();
+                }
+                System.out.println(coi.getMembers());
+                System.out.println(coi.getModifiers());
+                                                           
+            }
+            
+        }
+        return output;
+    }
+    
 	public ArrayList<CompilationUnit> readFiles(File srcFolder) throws Exception{
 		ArrayList<CompilationUnit> compilationunitArray = new ArrayList<CompilationUnit>();
 		List<String> results = new ArrayList<String>();
@@ -55,7 +79,7 @@ public class UmlClassParser {
 		       // System.out.println(compilationUnit.getTypes());
 		        System.out.println(compilationUnit.toString());
 		        compilationunitArray.add(compilationUnit);
-		        new MethodVisitor().visit(compilationUnit, null);
+		        
 		    }
 		}
 		
