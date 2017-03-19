@@ -21,6 +21,8 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.expr.SimpleName;
+import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 public class UmlClassParser {
@@ -77,11 +79,26 @@ public class UmlClassParser {
     						
     						}
     						
+    						/*
     						System.out.println("name is"+((FieldDeclaration) b).getChildNodes().get(0).toString());
     						String fieldName = ((FieldDeclaration) b).getChildNodes().get(0).toString();
     						System.out.println("variable is "+fieldName);
     						output+=fieldName+':';
     						System.out.println("output is "+output+':');
+    						//System.out.println("type is"+((FieldDeclaration) b).getClass()
+    						 * */
+    						 
+                            
+    						NodeList<VariableDeclarator> variable= ((FieldDeclaration) b).getVariables();
+    						for (Node n1 : variable) {
+    							VariableDeclarator v = (VariableDeclarator) n1;
+    							String fieldName=v.getType().toString();
+    							String fieldType=v.getName().toString();
+    							System.out.println("Finally"+v.getType());
+    							output+=fieldName+':';
+    							output+=fieldType+';';
+    							System.out.println("Finally"+v.getName());
+    						}
     						
     					}
                 }
