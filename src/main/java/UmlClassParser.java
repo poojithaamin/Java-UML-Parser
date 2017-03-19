@@ -19,11 +19,13 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
+
 
 public class UmlClassParser {
 	File srcFolder;
@@ -43,8 +45,7 @@ public class UmlClassParser {
 		compilationunitArray=readFiles(srcFolder);
         for (CompilationUnit cu : compilationunitArray)
             output= getDetails(cu);
-		System.out.println("Output is "+output);
-		
+		UmlDiagram.generatePNG(output, outputFile);
 	}
 	
    
@@ -66,13 +67,13 @@ public class UmlClassParser {
                 		System.out.println("b is "+b.toString());
     					if(b instanceof FieldDeclaration)
     					{											
-    						EnumSet<Modifier> modifier = ((FieldDeclaration) b).getModifiers();		
-    						if(modifier.contains(Modifier.PUBLIC))
+    						EnumSet<Modifier> fieldModifier = ((FieldDeclaration) b).getModifiers();		
+    						if(fieldModifier.contains(Modifier.PUBLIC))
     						{
     						output+="+";
     						System.out.println("output is "+output);
     						}
-    						else if(modifier.contains(Modifier.PRIVATE))	
+    						else if(fieldModifier.contains(Modifier.PRIVATE))	
     						{
     						output+="-";
     						System.out.println("output is "+output);
@@ -89,8 +90,8 @@ public class UmlClassParser {
     						 * */
     						 
                             
-    						NodeList<VariableDeclarator> variable= ((FieldDeclaration) b).getVariables();
-    						for (Node n1 : variable) {
+    						NodeList<VariableDeclarator> variableData= ((FieldDeclaration) b).getVariables();
+    						for (Node n1 : variableData) {
     							VariableDeclarator v = (VariableDeclarator) n1;
     							String fieldName=v.getType().toString();
     							String fieldType=v.getName().toString();
@@ -101,10 +102,45 @@ public class UmlClassParser {
     						}
     						
     					}
+    					
+    					if(b instanceof MethodDeclaration) 
+    					{
+    						EnumSet<Modifier> methodModifier = ((MethodDeclaration) b).getModifiers();	
+    						if(methodModifier.contains(Modifier.PUBLIC))
+    						{
+    						output+="+";
+    						System.out.println("output is "+output);
+    						}  
+    						else if(methodModifier.contains(Modifier.PRIVATE))	
+    						{
+    						output+="-";
+    						System.out.println("output is "+output);
+    						
+    						}
+    						
+    						String methodName = ((MethodDeclaration) b).getName().toString();
+    						String methodReturnType =((MethodDeclaration) b).getType().toString();
+    						NodeList<Parameter> methodParameter= ((MethodDeclaration) b).getParameters();
+    						if (methodParameter.isEmpty()){
+	    							output+=methodName+"("+")";
+	    							output+=":"+methodReturnType+";";
+    						}
+    						else{
+		    						for (Node n2 : methodParameter) {
+		    							String methodParam = n2.toString();
+		    							System.out.println("parameter"+methodParam);
+		    							output+=methodName+"("+methodParam+")";
+		    							output+=":"+methodReturnType+";";
+		    						    }
+    						}
+    						
+    					}
+    					
+    					
+    				}
                 }
-            }
-            
-        }       
+            }  
+        output+=']';
         return output;
     }
     
