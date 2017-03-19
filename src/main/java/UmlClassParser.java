@@ -4,15 +4,23 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import com.github.javaparser.*;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 public class UmlClassParser {
@@ -31,16 +39,16 @@ public class UmlClassParser {
 
 	public void parse() throws Exception{
 		compilationunitArray=readFiles(srcFolder);
-		output= getDetails(compilationunitArray);
+        for (CompilationUnit cu : compilationunitArray)
+            output= getDetails(cu);
 		System.out.println("Output is "+output);
 		
 	}
 	
    
-    private String getDetails(ArrayList<CompilationUnit> compilationunitArray) {
+    private String getDetails(CompilationUnit cu2) {
     	String output="";
-        for (CompilationUnit cu : compilationunitArray) {
-            List<TypeDeclaration<?>> gt = cu.getTypes();
+        	List<TypeDeclaration<?>> gt = cu2.getTypes();
             for (Node n : gt) {
                 ClassOrInterfaceDeclaration coi = (ClassOrInterfaceDeclaration) n;
                 if (coi.isInterface()){
@@ -49,14 +57,37 @@ public class UmlClassParser {
                 }
                 else{
                 	System.out.println(coi.getName()+" "+coi.isInterface());
-                	output+=" "+coi.getName();
+                	output+="["+coi.getName()+"|";
+                	List<BodyDeclaration<?>> bd = ((TypeDeclaration<?>) n).getMembers();                	
+                	for(BodyDeclaration<?> b: bd)
+    				{
+                		System.out.println("b is "+b.toString());
+    					if(b instanceof FieldDeclaration)
+    					{											
+    						EnumSet<Modifier> modifier = ((FieldDeclaration) b).getModifiers();		
+    						if(modifier.contains(Modifier.PUBLIC))
+    						{
+    						output+="+";
+    						System.out.println("output is "+output);
+    						}
+    						else if(modifier.contains(Modifier.PRIVATE))	
+    						{
+    						output+="-";
+    						System.out.println("output is "+output);
+    						
+    						}
+    						
+    						System.out.println("name is"+((FieldDeclaration) b).getChildNodes().get(0).toString());
+    						String fieldName = ((FieldDeclaration) b).getChildNodes().get(0).toString();
+    						System.out.println("variable is "+fieldName);
+    						output+=fieldName+':';
+    						System.out.println("output is "+output+':');
+    						
+    					}
                 }
-                System.out.println(coi.getMembers());
-                System.out.println(coi.getModifiers());
-                                                           
             }
             
-        }
+        }       
         return output;
     }
     
