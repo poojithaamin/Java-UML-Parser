@@ -26,7 +26,6 @@ import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.type.Type;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
-
 public class UmlClassParser {
 	File srcFolder;
 	String outputFile;
@@ -34,6 +33,7 @@ public class UmlClassParser {
     HashMap<String, String> mapClassConn;
 	ArrayList<CompilationUnit> compilationunitArray;
 	String output;
+	HashMap<String, Boolean> listClassInterface=new HashMap<String, Boolean>();
 	
 	UmlClassParser(File srcFolder, String outputFile){
 		this.srcFolder = srcFolder;
@@ -43,15 +43,31 @@ public class UmlClassParser {
 
 	public void parse() throws Exception{
 		compilationunitArray=readFiles(srcFolder);
+		getClassInterfaceName(compilationunitArray);
         for (CompilationUnit cu : compilationunitArray)
-            output= getDetails(cu);
+            output= getDetails(cu);		   
 		UmlDiagram.generatePNG(output, outputFile);
 	}
 	
+	
+   private void getClassInterfaceName(ArrayList<CompilationUnit> compilationunitArray){	
+	    for (CompilationUnit cu2 : compilationunitArray) {
+	    	List<TypeDeclaration<?>> gt1 = cu2.getTypes();  
+	    	for (Node n : gt1) {
+	    		ClassOrInterfaceDeclaration coi1 = (ClassOrInterfaceDeclaration) n;
+	    		listClassInterface.put(coi1.getName().toString(), coi1.isInterface());	
+	    		listClassInterface.put("B",false);
+	    		listClassInterface.put("C",false);
+	    	}	    
+	    }	   	    
+	   
+   }
+   
+   
    
     private String getDetails(CompilationUnit cu2) {
     	String output="";
-        	List<TypeDeclaration<?>> gt = cu2.getTypes();
+        	List<TypeDeclaration<?>> gt = cu2.getTypes();        
             for (Node n : gt) {
                 ClassOrInterfaceDeclaration coi = (ClassOrInterfaceDeclaration) n;
                 if (coi.isInterface()){
@@ -65,17 +81,20 @@ public class UmlClassParser {
                 	for(BodyDeclaration<?> b: bd)
     				{
                 		System.out.println("b is "+b.toString());
-    					if(b instanceof FieldDeclaration)
-    					{											
+                		String fieldMod="";
+                		//Field declaration
+    					if(b instanceof FieldDeclaration && b instanceof TypeDeclaration==false)
+    					{									
+    						//Field modifier
     						EnumSet<Modifier> fieldModifier = ((FieldDeclaration) b).getModifiers();		
     						if(fieldModifier.contains(Modifier.PUBLIC))
     						{
-    						output+="+";
+    						fieldMod="+";
     						System.out.println("output is "+output);
     						}
     						else if(fieldModifier.contains(Modifier.PRIVATE))	
     						{
-    						output+="-";
+    						fieldMod="-";
     						System.out.println("output is "+output);
     						
     						}
@@ -89,22 +108,43 @@ public class UmlClassParser {
     						//System.out.println("type is"+((FieldDeclaration) b).getClass()
     						 * */
     						 
-                            
+                            //Field name and type
     						NodeList<VariableDeclarator> variableData= ((FieldDeclaration) b).getVariables();
     						for (Node n1 : variableData) {
     							VariableDeclarator v = (VariableDeclarator) n1;
-    							String fieldName=v.getType().toString();
-    							String fieldType=v.getName().toString();
-    							System.out.println("Finally"+v.getType());
-    							output+=fieldName+':';
-    							output+=fieldType+';';
-    							System.out.println("Finally"+v.getName());
+    							String fieldName=v.getName().toString();
+    							String fieldType=v.getType().toString();
+    							System.out.println("fieldType is"+fieldType);
+    							System.out.println("fieldType contains"+fieldType.contains("<"));
+
+    							if (!listClassInterface.containsKey(fieldType) && !fieldType.contains("<")){
+    								output+=fieldMod+fieldName+':'+fieldType+';';
+        							output=output.replace("[]", "(*)");
+        							System.out.println("Output after"+output);
+        							System.out.println("Finally"+output);
+    							}
+    							
+    							else if (listClassInterface.containsKey(fieldType)) {
+    								System.out.println("Dependent");
+    							}
+    									
+    							else if(listClassInterface.containsKey(fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"))))
+    							{	
+    							  System.out.println("Dependent");
+    							}
+    							
+    							else {
+    								
+    							
+    						    }
+    							
     						}
-    						
     					}
-    					
+    					 
+    					//Method declaration
     					if(b instanceof MethodDeclaration) 
     					{
+    						//Method modifier
     						EnumSet<Modifier> methodModifier = ((MethodDeclaration) b).getModifiers();	
     						if(methodModifier.contains(Modifier.PUBLIC))
     						{
@@ -118,24 +158,28 @@ public class UmlClassParser {
     						
     						}
     						
+    						//Method name, return Type and parameter list
+    						String parameterList = "";
     						String methodName = ((MethodDeclaration) b).getName().toString();
-    						String methodReturnType =((MethodDeclaration) b).getType().toString();
+    						String methodReturnType =((MethodDeclaration) b).getType().toString();  
+    						output+=methodName+"(";
     						NodeList<Parameter> methodParameter= ((MethodDeclaration) b).getParameters();
     						if (methodParameter.isEmpty()){
-	    							output+=methodName+"("+")";
+	    							output+=")";
 	    							output+=":"+methodReturnType+";";
     						}
     						else{
 		    						for (Node n2 : methodParameter) {
-		    							String methodParam = n2.toString();
-		    							System.out.println("parameter"+methodParam);
-		    							output+=methodName+"("+methodParam+")";
-		    							output+=":"+methodReturnType+";";
+		    							String methodParamName = n2.getChildNodes().get(0).toString();
+		    							String methodParamType = n2.getChildNodes().get(1).toString();
+		    							System.out.println("parameter"+methodParamName);
+		    							parameterList+=methodParamName+":"+methodParamType+" ";		    						
+		    							System.out.println("parameterList is"+parameterList);
 		    						    }
+		    						output+=parameterList+")"+":"+methodReturnType+";";;
     						}
     						
-    					}
-    					
+    					}    					
     					
     				}
                 }
