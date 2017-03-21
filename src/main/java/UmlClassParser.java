@@ -1,5 +1,6 @@
 package umlparser;
 
+import java.awt.Point;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -7,6 +8,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.github.javaparser.*;
@@ -34,18 +36,21 @@ public class UmlClassParser {
 	ArrayList<CompilationUnit> compilationunitArray;
 	String output;
 	HashMap<String, Boolean> listClassInterface=new HashMap<String, Boolean>();
+	HashMap<String, String> association=new HashMap<String, String>();
+	List<String> replaceGetSet=new ArrayList<String>();
 	
 	UmlClassParser(File srcFolder, String outputFile){
 		this.srcFolder = srcFolder;
 		this.outputFile = outputFile;
 		System.out.println("JavaParser Module");
 	}
-
+	
 	public void parse() throws Exception{
 		compilationunitArray=readFiles(srcFolder);
 		getClassInterfaceName(compilationunitArray);
         for (CompilationUnit cu : compilationunitArray)
-            output= getDetails(cu);		   
+            output+= getDetails(cu);
+        getAssociationValue();
 		UmlDiagram.generatePNG(output, outputFile);
 	}
 	
@@ -56,57 +61,36 @@ public class UmlClassParser {
 	    	for (Node n : gt1) {
 	    		ClassOrInterfaceDeclaration coi1 = (ClassOrInterfaceDeclaration) n;
 	    		listClassInterface.put(coi1.getName().toString(), coi1.isInterface());	
-	    		listClassInterface.put("B",false);
-	    		listClassInterface.put("C",false);
 	    	}	    
-	    }	   	    
-	   
+	    }	   	    	  
    }
-   
-   
-   
+    
     private String getDetails(CompilationUnit cu2) {
-    	String output="";
+    	    String intOutput="";
+        	replaceGetSet.clear();
         	List<TypeDeclaration<?>> gt = cu2.getTypes();        
             for (Node n : gt) {
                 ClassOrInterfaceDeclaration coi = (ClassOrInterfaceDeclaration) n;
+                String className=coi.getName().toString();
                 if (coi.isInterface()){
-                	System.out.println(coi.getName()+" "+coi.isInterface());
-                	output+=" "+coi.getName();
+                	intOutput+=" "+coi.getName();
                 }
                 else{
                 	System.out.println(coi.getName()+" "+coi.isInterface());
-                	output+="["+coi.getName()+"|";
+                	intOutput+="["+coi.getName()+"|";
                 	List<BodyDeclaration<?>> bd = ((TypeDeclaration<?>) n).getMembers();                	
-                	for(BodyDeclaration<?> b: bd)
-    				{
-                		System.out.println("b is "+b.toString());
+                	for(BodyDeclaration<?> b: bd){                		
                 		String fieldMod="";
                 		//Field declaration
-    					if(b instanceof FieldDeclaration && b instanceof TypeDeclaration==false)
-    					{									
+    					if(b instanceof FieldDeclaration && b instanceof TypeDeclaration==false){									
     						//Field modifier
     						EnumSet<Modifier> fieldModifier = ((FieldDeclaration) b).getModifiers();		
-    						if(fieldModifier.contains(Modifier.PUBLIC))
-    						{
-    						fieldMod="+";
-    						System.out.println("output is "+output);
+    						if(fieldModifier.contains(Modifier.PUBLIC)){
+    						    fieldMod="+";    						
     						}
-    						else if(fieldModifier.contains(Modifier.PRIVATE))	
-    						{
-    						fieldMod="-";
-    						System.out.println("output is "+output);
-    						
-    						}
-    						
-    						/*
-    						System.out.println("name is"+((FieldDeclaration) b).getChildNodes().get(0).toString());
-    						String fieldName = ((FieldDeclaration) b).getChildNodes().get(0).toString();
-    						System.out.println("variable is "+fieldName);
-    						output+=fieldName+':';
-    						System.out.println("output is "+output+':');
-    						//System.out.println("type is"+((FieldDeclaration) b).getClass()
-    						 * */
+    						else if(fieldModifier.contains(Modifier.PRIVATE)){
+    							fieldMod="-";       							
+    						}    						
     						 
                             //Field name and type
     						NodeList<VariableDeclarator> variableData= ((FieldDeclaration) b).getVariables();
@@ -114,79 +98,121 @@ public class UmlClassParser {
     							VariableDeclarator v = (VariableDeclarator) n1;
     							String fieldName=v.getName().toString();
     							String fieldType=v.getType().toString();
-    							System.out.println("fieldType is"+fieldType);
-    							System.out.println("fieldType contains"+fieldType.contains("<"));
 
     							if (!listClassInterface.containsKey(fieldType) && !fieldType.contains("<")){
-    								output+=fieldMod+fieldName+':'+fieldType+';';
-        							output=output.replace("[]", "(*)");
-        							System.out.println("Output after"+output);
-        							System.out.println("Finally"+output);
+    								intOutput+=fieldMod+fieldName+':'+fieldType+';';
+    								intOutput=intOutput.replace("[]", "(*)");        							        							        							
     							}
     							
     							else if (listClassInterface.containsKey(fieldType)) {
-    								System.out.println("Dependent");
+    								System.out.println("Association");
+    								//association.put("["+className+"]"+"["+fieldType+"]", "#-1");
+    								//output.concat("["+className+"]#0..*["+fieldType+"];");
+    								//System.out.println("Association value is "+association.get("["+className+"]"+"["+fieldType+"]"));
+    								mapAssociationValue(className,fieldType,"#-1");
     							}
     									
     							else if(listClassInterface.containsKey(fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"))))
     							{	
-    							  System.out.println("Dependent");
+    							  fieldType=fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"));
+    							  //association.put(className.concat(fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"))), "#-0..*");
+    							  //association.put("["+className+"]"+"["+fieldType+"]", "#-0..*");
+    							  //System.out.println("Association value is "+association.get("["+className+"]"+"["+fieldType+"]"));
+    							  mapAssociationValue(className,fieldType,"#-0..*");
+    							
     							}
     							
     							else {
-    								
-    							
+    							 							
     						    }
     							
     						}
     					}
     					 
     					//Method declaration
-    					if(b instanceof MethodDeclaration) 
-    					{
+    					if(b instanceof MethodDeclaration) {
     						//Method modifier
+    						String methodMod="";
     						EnumSet<Modifier> methodModifier = ((MethodDeclaration) b).getModifiers();	
-    						if(methodModifier.contains(Modifier.PUBLIC))
+    						if(methodModifier.contains(Modifier.PUBLIC)){
+    						methodMod="+";    						    						
+    						if(((MethodDeclaration) b).getName().toString().startsWith("get")||
+    								((MethodDeclaration) b).getName().toString().startsWith("set"))
     						{
-    						output+="+";
-    						System.out.println("output is "+output);
-    						}  
-    						else if(methodModifier.contains(Modifier.PRIVATE))	
+    							String fieldname=((MethodDeclaration) b).getName().toString().substring(3);
+    							replaceGetSet.add(fieldname.toLowerCase());
+    							
+    						}
+    						else
     						{
-    						output+="-";
-    						System.out.println("output is "+output);
-    						
-    						}
-    						
-    						//Method name, return Type and parameter list
-    						String parameterList = "";
-    						String methodName = ((MethodDeclaration) b).getName().toString();
-    						String methodReturnType =((MethodDeclaration) b).getType().toString();  
-    						output+=methodName+"(";
-    						NodeList<Parameter> methodParameter= ((MethodDeclaration) b).getParameters();
-    						if (methodParameter.isEmpty()){
-	    							output+=")";
-	    							output+=":"+methodReturnType+";";
-    						}
-    						else{
-		    						for (Node n2 : methodParameter) {
-		    							String methodParamName = n2.getChildNodes().get(0).toString();
-		    							String methodParamType = n2.getChildNodes().get(1).toString();
-		    							System.out.println("parameter"+methodParamName);
-		    							parameterList+=methodParamName+":"+methodParamType+" ";		    						
-		    							System.out.println("parameterList is"+parameterList);
-		    						    }
-		    						output+=parameterList+")"+":"+methodReturnType+";";;
-    						}
-    						
-    					}    					
+		    						//Method name, return Type and parameter list
+		    						String parameterList = "";
+		    						String methodName = ((MethodDeclaration) b).getName().toString();
+		    						String methodReturnType =((MethodDeclaration) b).getType().toString();  
+		    						intOutput+=methodMod+methodName+"(";
+		    						NodeList<Parameter> methodParameter= ((MethodDeclaration) b).getParameters();
+		    						if (methodParameter.isEmpty()){
+		    							intOutput+=")";
+		    							intOutput+=":"+methodReturnType+";";
+		    						}
+		    						else{
+				    						for (Node n2 : methodParameter) {
+				    							String methodParamName = n2.getChildNodes().get(0).toString();
+				    							String methodParamType = n2.getChildNodes().get(1).toString();				    							
+				    							parameterList+=methodParamName+":"+methodParamType+" ";		    										    							
+				    						    }
+				    						intOutput+=parameterList+")"+":"+methodReturnType+";";;
+		    						}		    						
+		    				}  
+    					}
     					
     				}
                 }
             }  
-        output+=']';
-        return output;
+         }
+            intOutput+="],";
+            //Replace private attribute have getter and setter to public
+        	for (String fieldname : replaceGetSet) {
+        		intOutput=intOutput.replaceAll("-"+fieldname,"+"+fieldname);
+        	}
+            return intOutput;
     }
+    
+    
+    public void mapAssociationValue(String className1, String className2, String value)
+    {
+    	String c1c2="["+className1+"]"+"["+className2+"]";
+    	String c2c1="["+className2+"]"+"["+className1+"]";
+    	if(association.containsKey(c1c2)||
+    	   association.containsKey(c2c1))  {   		  
+    		  String assoValue=(association.get(c1c2)!=null)?association.get(c1c2) :association.get(c2c1); 
+    		  System.out.println("Old Association value is "+assoValue); 
+    		  value=value.replace("#-", "");
+    		  assoValue=assoValue.replace("#", value); 
+    		  if (association.get(c1c2)!=null) {
+	    		  association.put("["+className1+"]"+"["+className2+"]", assoValue);
+	    		  System.out.println("New Association value is "+assoValue); 
+    		  }
+    		  else{
+    			  association.put("["+className2+"]"+"["+className1+"]", assoValue);
+	    		  System.out.println("New Association value is "+assoValue); 
+    		  }
+    			  
+    	}
+    	else{    	
+    		association.put("["+className1+"]"+"["+className2+"]", value);
+    		System.out.println("Association inserted for"+className1+className2);
+    	}
+    }
+    
+    public void getAssociationValue(){
+    	 for (String key : association.keySet()) {
+    		   String finalInput=key.replace("][", "]"+association.get(key)+"[");
+    		   System.out.println(finalInput);
+    		}
+
+    }
+    
     
 	public ArrayList<CompilationUnit> readFiles(File srcFolder) throws Exception{
 		ArrayList<CompilationUnit> compilationunitArray = new ArrayList<CompilationUnit>();
@@ -198,14 +224,10 @@ public class UmlClassParser {
 		for (File file : srcFiles) {			
 		    if (file.isFile() && file.getName().endsWith(".java")) {
 		        results.add(file.getName());
-		        data = new FileReader(file);	
-		        //FileInputStream in = new FileInputStream(file);
+		        data = new FileReader(file);			        
 		        System.out.println(file.getName());
 		        CompilationUnit compilationUnit = JavaParser.parse(data);
-		        //CompilationUnit compilationUnit = JavaParser.parse(in);
-		        //System.out.println(compilationUnit.getClassByName("A"));
-		       // System.out.println(compilationUnit.getTypes());
-		        System.out.println(compilationUnit.toString());
+		        //System.out.println(compilationUnit.toString());
 		        compilationunitArray.add(compilationUnit);
 		        
 		    }
