@@ -82,7 +82,7 @@ public class UmlClassParser {
                 }
                 else{
                 	System.out.println(coi.getName()+" "+coi.isInterface());
-                	fieldMapping+="["+coi.getName()+"|";
+                	fieldMapping+="["+coi.getName()+"|";                
                 	List<BodyDeclaration<?>> bd = ((TypeDeclaration<?>) n).getMembers();                	
                 	for(BodyDeclaration<?> b: bd){                		
                 		String fieldMod="";
@@ -90,7 +90,7 @@ public class UmlClassParser {
     					if(b instanceof FieldDeclaration && b instanceof TypeDeclaration==false){									
     						//Field modifier
     						EnumSet<Modifier> fieldModifier = ((FieldDeclaration) b).getModifiers();
-    						if(fieldModifier.contains(Modifier.PUBLIC)||fieldModifier.contains(Modifier.PRIVATE)){
+    						//if(fieldModifier.contains(Modifier.PUBLIC)||fieldModifier.contains(Modifier.PRIVATE)){
     						if(fieldModifier.contains(Modifier.PUBLIC)){
     						    fieldMod="+";    						
     						}
@@ -106,13 +106,12 @@ public class UmlClassParser {
     							String fieldType=v.getType().toString();
                                 
     							//java source does not exist for the type, add as attribute
-    							if (!listClassInterface.containsKey(fieldType) && !fieldType.contains("<")){
+    							if ((!listClassInterface.containsKey(fieldType)) && (!fieldType.contains("<")) && (fieldMod=="+" || fieldMod=="-")){
     								fieldMapping+=fieldMod+fieldName+':'+fieldType+';';
     								fieldMapping=fieldMapping.replace("[]", "(*)");        							        							        							
-    							}
-    							
+    							}    						
     							//if java source exists for the type, get the association
-    							else if (listClassInterface.containsKey(fieldType)) {
+    							 if (listClassInterface.containsKey(fieldType)) {
     								if(listClassInterface.get(fieldType)==true)    								
     								  mapAssociationValue(className,"<<interface>>;"+fieldType,"?-1");
     								else
@@ -120,7 +119,7 @@ public class UmlClassParser {
     							}
     							
     							//if java source exists for the type, get the association
-    							else if(listClassInterface.containsKey(fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"))))
+    							else if(fieldType.contains("<") && listClassInterface.containsKey(fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"))))
     							{     							  	
     							  fieldType=fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">")); 
     							  
@@ -131,18 +130,19 @@ public class UmlClassParser {
     							}
     							
     							//if no java source, put class as attribute
-    							else if(!listClassInterface.containsKey(fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"))))
+    							else if(fieldType.contains("<") && !listClassInterface.containsKey(fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"))))
     							{     							  	
-    							  fieldType=fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"));     							  
+    							  fieldType=fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">"));  
+    							  if (fieldMod=="+" || fieldMod=="-")
     							  fieldMapping+=fieldMod+fieldName+':'+fieldType+';';
     							}
     							
     							else  {
     							 							
     						    }    							
-    						 }
-    					  }
-    				    }
+    						 }    					  
+    					   //}
+    					}
     					 
     					/* Method declaration */
     					if(b instanceof MethodDeclaration) {
@@ -161,27 +161,40 @@ public class UmlClassParser {
     						else
     						{
 		    						//Method name, return Type and parameter list
-		    						String parameterList = "";
+		    						String parameterList = "";		    						
 		    						String methodName = ((MethodDeclaration) b).getName().toString();
 		    						String methodReturnType =((MethodDeclaration) b).getType().toString();  
+		    						System.out.println("Printing method body "+((MethodDeclaration) b).getChildNodes());
+		    						List<Node> methodBody=((MethodDeclaration) b).getChildNodes();
 		    						methodMapping+=methodMod+methodName+"(";
+		    						System.out.println("After compiling"+methodMapping);
 		    						NodeList<Parameter> methodParameter= ((MethodDeclaration) b).getParameters();
 		    						if (methodParameter.isEmpty()){
 		    							methodMapping+=")";
 		    							methodMapping+=":"+methodReturnType+";";
 		    						}
 		    						else{
+		    							    System.out.println("I am here");
 				    						for (Node n2 : methodParameter) {
 				    							String methodParamName = n2.getChildNodes().get(0).toString();
 				    							String methodParamType = n2.getChildNodes().get(1).toString();					    							
-				    							parameterList+=methodParamName+":"+methodParamType+" ";		    
+				    							parameterList+=methodParamName+":"+methodParamType+" ";	
+				    							System.out.println("parameterList is "+parameterList);
 				    							if (listClassInterface.containsKey(methodParamType)){
-				    								usesMapping=usesInterfaceClass(className,methodParamType);
-				    								
+				    								usesMapping=usesInterfaceClass(className,methodParamType);				    								
 				    							   }
 				    						    }
 				    						methodMapping+=parameterList+")"+":"+methodReturnType+";";;
-		    						}		    						
+		    						}
+		    						
+		    						for(Node i : methodBody){
+		    							for (String key : listClassInterface.keySet()){
+		    								if(i.toString().replaceAll("(?m)^.*System.out.println.*", "").contains(key) && listClassInterface.get(key)==true)	{	    									
+		    							      System.out.println(className+" @@@"+i.toString()+" uses***"+key +i.toString().contains(key));
+		    								  usesMapping=usesInterfaceClass(className,key);
+		    								}
+		    						}
+		    						}
 		    				}  
     					}    				
     				}
@@ -206,8 +219,7 @@ public class UmlClassParser {
 				    							String methodParamType = n2.getChildNodes().get(1).toString();					    							
 				    							parameterList+=methodParamName+":"+methodParamType+" ";		    
 				    							if (listClassInterface.containsKey(methodParamType)){
-				    								usesMapping=usesInterfaceClass(className,methodParamType);
-				    								
+				    								usesMapping=usesInterfaceClass(className,methodParamType);					    								
 				    							   }
 				    						    }
 				    						methodMapping+=parameterList+")"+";";;
@@ -257,9 +269,10 @@ public class UmlClassParser {
     }  
     
     public String usesInterfaceClass(String className, String methodParamType){
-    	String usesMapping="";        
+    	String usesMapping="";       
+    	System.out.println("&&&&&&&&&&&&&&&"+className+methodParamType);
         if(listClassInterface.get(methodParamType)==false) {			
-			usesMapping+=",["+className+"]uses -.->["+methodParamType+"]";			
+			//usesMapping+=",["+className+"]uses -.->["+methodParamType+"]";			
         }
         else if(listClassInterface.get(methodParamType)==true) {			
 			usesMapping+=",["+className+"]uses -.->[<<interface>>;"+methodParamType+"]";
