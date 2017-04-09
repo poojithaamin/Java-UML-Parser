@@ -195,6 +195,7 @@ public class UmlClassParser {
 		    								}
 		    						}
 		    						}
+		    						methodMapping=methodMapping.replace("[]", "(*)");
 		    				}  
     					}    				
     				}
