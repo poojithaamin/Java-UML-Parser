@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 import net.sourceforge.plantuml.SourceStringReader;
 
@@ -22,22 +23,45 @@ public aspect SequenceAspect {
 	HashMap<String, Integer> parentMap = new HashMap<String, Integer>();
 	HashMap<String, String> childMap = new HashMap<String, String>();
 	HashMap<String, String> doneMap = new HashMap<String, String>();
+	HashMap<String, String> startMap = new HashMap<String, String>();
 	
-	//pointcut function():call(void org.poojitha.aop.*.showState*())||call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*));//||execution(void org.poojitha.aop.*.notifyObservers());	
-	//pointcut function():call(void org.poojitha.aop.*.**(*));//||call(void org.poojitha.aop.*.**());//||execution(void org.poojitha.aop.*.**());			
-	pointcut function():execution(String org.poojitha.aop.*.getState*())||call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*))||execution(void org.poojitha.aop.*.notifyObservers())||execution(void org.poojitha.aop.*.update());
+	pointcut function():execution(String org.poojitha.aop.*.getState*())||call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*))||execution(void org.poojitha.aop.*.notifyObservers())||execution(void org.poojitha.aop.*.update())||call(void org.poojitha.aop.*.showState());
 	
 	after(): function(){
+		System.out.println("Actual method is "+ thisJoinPoint.getSignature().toString());
+		String splitFromClass = null;
+		String[] splitToClass=thisJoinPoint.getSignature().toString().split("\\.");	
+		joinPointValue=thisJoinPoint.toString().split("\\(")[0];
+		try {
+			splitFromClass = Class.forName(Thread.currentThread().getStackTrace()[2].getClassName()).toString();
+		} catch (ClassNotFoundException e) {			
+			e.printStackTrace();
+		}
+		fromClass = splitFromClass.substring(splitFromClass.lastIndexOf('.') + 1);
+		methodName = splitToClass[splitToClass.length-1];
+		
 		System.out.println("**********************aspect after:**********************");
+		
 		if(joinPointValue.trim().equals("call")) {		
 		System.out.println("Target is:"+thisJoinPoint.getTarget());
 		doneMap.put(fromClass+methodName+sequence, "0");
 		System.out.println("Map value is "+doneMap.get(fromClass+methodName));
 	}
-		else if(joinPointValue.trim().equals("execution")) {			
+		
+		else if(joinPointValue.trim().equals("execution")) {	
+			Map.Entry<String, String> maxEntry = null;
+			for (Map.Entry<String, String> entry : childMap.entrySet())
+			{
+			    if (maxEntry == null || entry.getValue().compareTo(maxEntry.getValue()) > 0)
+			    {
+			    	if(!doneMap.containsKey(entry.getKey()))
+			        maxEntry = entry;
+			    }
+			}
 			System.out.println("Target is:"+thisJoinPoint.getTarget());
-			doneMap.put(leftClassClose+methodName+maxValue+"."+levelValue, "0");
-			System.out.println(leftClassClose+methodName+maxValue+"."+levelValue+ "Map value is "+doneMap.get(leftClass+methodName+maxValue+"."+levelValue));
+			doneMap.put(maxEntry.getKey().toString(), "0");
+			startMap.remove(maxEntry.getValue());
+			System.out.println(maxEntry.getKey().toString()+ "Map value is "+doneMap.get(maxEntry.getKey().toString()));		    
 		} 
 		
 	}
@@ -62,36 +86,21 @@ public aspect SequenceAspect {
 		fromClass = splitFromClass.substring(splitFromClass.lastIndexOf('.') + 1);
 		methodName = splitToClass[splitToClass.length-1];
 		toClass = splitToClass[splitToClass.length-2];
-		returnType = splitToClass[0].split(" ")[0];
-	
-		System.out.println("JoinPoint is " +joinPointValue);
-		System.out.println("Method name is " +splitToClass[splitToClass.length-1]);
-		System.out.println("name is " +thisJoinPoint.getStaticPart( ).getSourceLocation( ));
-		System.out.println("from Class is " +fromClass);
-		System.out.println("Variable is "+thisJoinPoint.getSignature().toString());
-		System.out.println("to Class is " +splitToClass[splitToClass.length-2]);
+		returnType = splitToClass[0].split(" ")[0];	
 		
 		if(joinPointValue.trim().equals("call")) {
 		System.out.println("Entered here1");		
-		sequence++;	
-		//parentMap.put(fromClass+methodName, String.valueOf(sequence));
+		sequence++;			
 		parentMap.put(fromClass+methodName+sequence, sequence);
 		messageVariable+=fromClass+" ->"+ toClass+": "+parentMap.get(fromClass+methodName+sequence)+" "+methodName+" : "+returnType+"\n";		
 		leftClass=toClass;
+		startMap.put(Integer.toString(sequence), toClass);
 		}
 		
 		else if(joinPointValue.trim().equals("execution")) {
 	    System.out.println("Entered here2");	
 		level++;
-		maxValue = "";
-		
-		for (String name: doneMap.keySet()){
-
-            String key =name.toString();
-            String value = doneMap.get(name).toString();  
-            System.out.println(key + " " + value);  
-
-		}
+		maxValue = "";		
 		
 		for (String key : childMap.keySet()) {
 			System.out.println("childMap key is"+key);
@@ -109,7 +118,18 @@ public aspect SequenceAspect {
 			//levelValue=level;
 			}
 		
+		Map.Entry<String, String> maxEntry = null;
+		for (Map.Entry<String, String> entry : startMap.entrySet())
+		{
+		    if (maxEntry == null || entry.getKey().compareTo(maxEntry.getKey()) > 0)
+		    {			    	
+		        maxEntry = entry;
+		    }
+		}	
+		leftClass=maxEntry.getValue();
+		
 		if (maxValue=="") {
+			
 			int maxValue1=0;
 			for (int value : parentMap.values()) {			
 		    if (value > maxValue1) {
@@ -125,7 +145,8 @@ public aspect SequenceAspect {
 		messageVariable+=leftClass+" ->"+ toClass+": "+childMap.get(leftClass+methodName+maxValue+"."+level)+" "+methodName+" : "+returnType+"\n";		
 		levelValue=level;
 		leftClassClose=leftClass;
-		leftClass=toClass;
+		//leftClass=toClass;
+		startMap.put(sequence+"."+level, toClass);
 		System.out.println("messageVariable inner is "+messageVariable);
 		}		
 		else{
@@ -135,7 +156,8 @@ public aspect SequenceAspect {
 			messageVariable+=leftClass+" ->"+ toClass+": "+childMap.get(leftClass+methodName+maxValue+"."+level)+" "+methodName+" : "+returnType+"\n";		
 			levelValue=level;
 			leftClassClose=leftClass;
-			leftClass=toClass;
+			//leftClass=toClass;
+			startMap.put(maxValue+"."+level, toClass);
 		}
 		}	
 		System.out.println("GENERATESEQUENCE INVOKED");
