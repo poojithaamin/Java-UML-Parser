@@ -15,8 +15,9 @@ public aspect SequenceAspect {
 	String fromClass = null;
 	String methodName = null;
 	String leftClass=null;
+	String leftClassClose=null;
 	String joinPointValue=null;
-	float maxValue=0;
+	String maxValue="";
 	int levelValue=0;
 	HashMap<String, Integer> parentMap = new HashMap<String, Integer>();
 	HashMap<String, String> childMap = new HashMap<String, String>();
@@ -24,27 +25,26 @@ public aspect SequenceAspect {
 	
 	//pointcut function():call(void org.poojitha.aop.*.showState*())||call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*));//||execution(void org.poojitha.aop.*.notifyObservers());	
 	//pointcut function():call(void org.poojitha.aop.*.**(*));//||call(void org.poojitha.aop.*.**());//||execution(void org.poojitha.aop.*.**());			
-	pointcut function():call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*))||execution(void org.poojitha.aop.*.notifyObservers())||execution(void org.poojitha.aop.*.update());
+	pointcut function():execution(String org.poojitha.aop.*.getState*())||call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*))||execution(void org.poojitha.aop.*.notifyObservers())||execution(void org.poojitha.aop.*.update());
 	
 	after(): function(){
-		if(joinPointValue.trim().equals("call")) {
-		System.out.println("aspect after:");
+		System.out.println("**********************aspect after:**********************");
+		if(joinPointValue.trim().equals("call")) {		
 		System.out.println("Target is:"+thisJoinPoint.getTarget());
 		doneMap.put(fromClass+methodName+sequence, "0");
 		System.out.println("Map value is "+doneMap.get(fromClass+methodName));
 	}
-		else if(joinPointValue.trim().equals("execution")) {
-			System.out.println("aspect after:");
+		else if(joinPointValue.trim().equals("execution")) {			
 			System.out.println("Target is:"+thisJoinPoint.getTarget());
-			doneMap.put(leftClass+methodName+maxValue+"."+levelValue, "0");
-			System.out.println("Map value is "+doneMap.get(leftClass+methodName+maxValue+"."+levelValue));
+			doneMap.put(leftClassClose+methodName+maxValue+"."+levelValue, "0");
+			System.out.println(leftClassClose+methodName+maxValue+"."+levelValue+ "Map value is "+doneMap.get(leftClass+methodName+maxValue+"."+levelValue));
 		} 
 		
 	}
 	
 	
 	before(): function(){
-		System.out.println("aspect before:");		
+		System.out.println("**********************aspect before:**********************");		
 			
 		String toClass = null;
 		String splitFromClass = null;		
@@ -83,35 +83,62 @@ public aspect SequenceAspect {
 		else if(joinPointValue.trim().equals("execution")) {
 	    System.out.println("Entered here2");	
 		level++;
-		maxValue = 0;
+		maxValue = "";
+		
+		for (String name: doneMap.keySet()){
+
+            String key =name.toString();
+            String value = doneMap.get(name).toString();  
+            System.out.println(key + " " + value);  
+
+		}
+		
 		for (String key : childMap.keySet()) {
+			System.out.println("childMap key is"+key);
 			if (doneMap.containsKey(key)) {
-			     maxValue = 0;
+				System.out.println("Already deleted "+key);  			    
 			    } else{
-			    	float value=Float.parseFloat(childMap.get(key));
-				    if (value > maxValue) {
+			    	String value=childMap.get(key);
+				    if (value.compareToIgnoreCase(maxValue) >0) {
 				        maxValue = value;
 				    }  
-					System.out.println("maxValue is "+maxValue);    
-					childMap.put(leftClass+methodName+maxValue+"."+level, maxValue+"."+level);
-					messageVariable+=leftClass+" ->"+ toClass+": "+childMap.get(leftClass+methodName+maxValue+"."+level)+" "+methodName+" : "+returnType+"\n";		
-					levelValue=level;
 			    }
+			System.out.println("maxValue inner "+maxValue);    
+			//childMap.put(leftClass+methodName+maxValue+"."+level, maxValue+"."+level);
+			//messageVariable+=leftClass+" ->"+ toClass+": "+childMap.get(leftClass+methodName+maxValue+"."+level)+" "+methodName+" : "+returnType+"\n";		
+			//levelValue=level;
 			}
 		
-		if (maxValue==0) {
+		if (maxValue=="") {
+			int maxValue1=0;
 			for (int value : parentMap.values()) {			
-		    if (value > maxValue) {
-		        maxValue = value;
-		    }	
+		    if (value > maxValue1) {
+		        maxValue1 = value;
+		    }
+		    maxValue=Integer.toString(maxValue1);
 		}
-		System.out.println("maxValue is "+maxValue);    
+		System.out.println("maxValue outer "+maxValue); 
+		System.out.println("level outer "+level);
+		if (childMap.containsValue(sequence+"."+level))
+			level++;
 		childMap.put(leftClass+methodName+maxValue+"."+level, sequence+"."+level);
 		messageVariable+=leftClass+" ->"+ toClass+": "+childMap.get(leftClass+methodName+maxValue+"."+level)+" "+methodName+" : "+returnType+"\n";		
 		levelValue=level;
-		}
+		leftClassClose=leftClass;
 		leftClass=toClass;
+		System.out.println("messageVariable inner is "+messageVariable);
+		}		
+		else{
+			if (childMap.containsValue(maxValue+"."+level))
+				level++;
+			childMap.put(leftClass+methodName+maxValue+"."+level, maxValue+"."+level);
+			messageVariable+=leftClass+" ->"+ toClass+": "+childMap.get(leftClass+methodName+maxValue+"."+level)+" "+methodName+" : "+returnType+"\n";		
+			levelValue=level;
+			leftClassClose=leftClass;
+			leftClass=toClass;
 		}
+		}	
+		System.out.println("GENERATESEQUENCE INVOKED");
 		generateSequence(messageVariable);
 	}
 	
@@ -122,28 +149,20 @@ public aspect SequenceAspect {
 	    plantUmlSource.append("@startuml\n");	    
 	    String finalVal=str;
 	    finalVal=str+"\n";
-	    System.out.println("finalval is "+finalVal);
-	    
+	    System.out.println("finalval is "+finalVal);	    
 	    plantUmlSource.append(finalVal);	            	          
-
         plantUmlSource.append("@enduml");
-
-	    SourceStringReader reader = new SourceStringReader(plantUmlSource.toString());
-	    
+	    SourceStringReader reader = new SourceStringReader(plantUmlSource.toString());	    
 	    System.out.println(plantUmlSource.toString());
-
-	    FileOutputStream output = null;
-	    
+	    FileOutputStream output = null;	    
 		try {
 			output = new FileOutputStream(new File("E:/SJSU/SEM1/202-SSE/PP/UmlParserSeqNew.png"));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block		
 		}
-
 	    try {
 			reader.generateImage(output);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block		
+		} catch (IOException e) {				
 		}
 	}
 }
