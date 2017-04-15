@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.lang.reflect.Method;
 
 import net.sourceforge.plantuml.SourceStringReader;
 
@@ -17,9 +18,14 @@ public aspect SequenceAspect {
 	String methodName = null;
 	String leftClass=null;
 	String leftClassClose=null;
-	String joinPointValue=null;
+	String joinPointType=null;
 	String maxValue="";
 	int levelValue=0;
+	String returnType = null;
+	String splitFromClass = null;
+	String[] splitToClass = null;
+	String toClass = null;
+	
 	HashMap<String, Integer> parentMap = new HashMap<String, Integer>();
 	HashMap<String, String> childMap = new HashMap<String, String>();
 	HashMap<String, String> doneMap = new HashMap<String, String>();
@@ -28,27 +34,17 @@ public aspect SequenceAspect {
 	pointcut function():execution(String org.poojitha.aop.*.getState*())||call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*))||execution(void org.poojitha.aop.*.notifyObservers())||execution(void org.poojitha.aop.*.update())||call(void org.poojitha.aop.*.showState());
 	
 	after(): function(){
-		System.out.println("Actual method is "+ thisJoinPoint.getSignature().toString());
-		String splitFromClass = null;
-		String[] splitToClass=thisJoinPoint.getSignature().toString().split("\\.");	
-		joinPointValue=thisJoinPoint.toString().split("\\(")[0];
-		try {
-			splitFromClass = Class.forName(Thread.currentThread().getStackTrace()[2].getClassName()).toString();
-		} catch (ClassNotFoundException e) {			
-			e.printStackTrace();
-		}
-		fromClass = splitFromClass.substring(splitFromClass.lastIndexOf('.') + 1);
-		methodName = splitToClass[splitToClass.length-1];
-		
+		System.out.println("Actual method is "+ thisJoinPoint.getSignature().toString());		
 		System.out.println("**********************aspect after:**********************");
+		setFromToDetails(thisJoinPoint);
 		
-		if(joinPointValue.trim().equals("call")) {		
+		if(joinPointType.trim().equals("call")) {		
 		System.out.println("Target is:"+thisJoinPoint.getTarget());
 		doneMap.put(fromClass+methodName+sequence, "0");
 		System.out.println("Map value is "+doneMap.get(fromClass+methodName));
-	}
+     	}
 		
-		else if(joinPointValue.trim().equals("execution")) {	
+		else if(joinPointType.trim().equals("execution")) {	
 			Map.Entry<String, String> maxEntry = null;
 			for (Map.Entry<String, String> entry : childMap.entrySet())
 			{
@@ -68,27 +64,13 @@ public aspect SequenceAspect {
 	
 	
 	before(): function(){
-		System.out.println("**********************aspect before:**********************");		
-			
-		String toClass = null;
-		String splitFromClass = null;		
-		String returnType = null;
+		System.out.println("**********************aspect before:**********************");									
 		Integer level=0;
+		setFromToDetails(thisJoinPoint);
+		System.out.println("fromClass is "+fromClass);
+		System.out.println("toClass is "+toClass);
 		
-		joinPointValue=thisJoinPoint.toString().split("\\(")[0];
-		String[] splitToClass=thisJoinPoint.getSignature().toString().split("\\.");		
-		try {
-			splitFromClass = Class.forName(Thread.currentThread().getStackTrace()[2].getClassName()).toString();
-		} catch (ClassNotFoundException e) {			
-			e.printStackTrace();
-		}
-		
-		fromClass = splitFromClass.substring(splitFromClass.lastIndexOf('.') + 1);
-		methodName = splitToClass[splitToClass.length-1];
-		toClass = splitToClass[splitToClass.length-2];
-		returnType = splitToClass[0].split(" ")[0];	
-		
-		if(joinPointValue.trim().equals("call")) {
+		if(joinPointType.trim().equals("call")) {
 		System.out.println("Entered here1");		
 		sequence++;			
 		parentMap.put(fromClass+methodName+sequence, sequence);
@@ -97,7 +79,7 @@ public aspect SequenceAspect {
 		startMap.put(Integer.toString(sequence), toClass);
 		}
 		
-		else if(joinPointValue.trim().equals("execution")) {
+		else if(joinPointType.trim().equals("execution")) {
 	    System.out.println("Entered here2");	
 		level++;
 		maxValue = "";		
@@ -113,9 +95,6 @@ public aspect SequenceAspect {
 				    }  
 			    }
 			System.out.println("maxValue inner "+maxValue);    
-			//childMap.put(leftClass+methodName+maxValue+"."+level, maxValue+"."+level);
-			//messageVariable+=leftClass+" ->"+ toClass+": "+childMap.get(leftClass+methodName+maxValue+"."+level)+" "+methodName+" : "+returnType+"\n";		
-			//levelValue=level;
 			}
 		
 		Map.Entry<String, String> maxEntry = null;
@@ -164,7 +143,20 @@ public aspect SequenceAspect {
 		generateSequence(messageVariable);
 	}
 	
-	
+	//set joinPointdetails	
+	public void setFromToDetails(org.aspectj.lang.JoinPoint thisJoinPoint){		
+		splitToClass=thisJoinPoint.getSignature().toString().split("\\.");			
+		try {
+			splitFromClass = Class.forName(Thread.currentThread().getStackTrace()[2].getClassName()).toString();
+		} catch (ClassNotFoundException e) {			
+			e.printStackTrace();
+		}
+		fromClass = splitFromClass.substring(splitFromClass.lastIndexOf('.') + 1);
+		toClass = splitToClass[splitToClass.length-2];
+		methodName = splitToClass[splitToClass.length-1];
+		joinPointType=thisJoinPoint.toString().split("\\(")[0];
+		returnType = splitToClass[0].split(" ")[0];	
+	}
 	
 	public void generateSequence(String str){
 		StringBuilder plantUmlSource = new StringBuilder();			
