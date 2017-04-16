@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import net.sourceforge.plantuml.SourceStringReader;
 
-public aspect myAspect {
+public aspect SequenceAspect {
 	
 	public String messageVariable = "";
 	public int sequence=0;
@@ -155,8 +155,7 @@ public aspect myAspect {
 		methodName = splitToClass[splitToClass.length-1];
 		joinPointType=thisJoinPoint.toString().split("\\(")[0];
 		returnType = splitToClass[0].split(" ")[0];	
-		toClass=thisJoinPoint.getTarget().getClass().toString();
-		toClass=toClass.substring(toClass.lastIndexOf('.') + 1);
+		toClass=thisJoinPoint.getTarget().getClass().getName();		
 	}
 	
 	public void generateSequence(String str){
