@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import net.sourceforge.plantuml.SourceStringReader;
 
-public aspect SequenceAspect {
+public aspect myAspect {
 	
 	public String messageVariable = "";
 	public int sequence=0;
@@ -21,13 +21,18 @@ public aspect SequenceAspect {
 	String splitFromClass = "";
 	String[] splitToClass = null;
 	String toClass = "";
+	String prevType="";
+	String prevMethod="";
 	
 	HashMap<String, Integer> parentMap = new HashMap<String, Integer>();
 	HashMap<String, String> childMap = new HashMap<String, String>();
 	HashMap<String, String> doneMap = new HashMap<String, String>();
-	HashMap<String, String> startMap = new HashMap<String, String>();
+	HashMap<String, String> startMap = new HashMap<String, String>();	
 	
-	pointcut function():execution(String org.poojitha.aop.*.getState*())||call(void org.poojitha.aop.*.attach*(*))||call(void org.poojitha.aop.*.setState*(*))||execution(void org.poojitha.aop.*.notifyObservers())||execution(void org.poojitha.aop.*.update())||call(void org.poojitha.aop.*.showState());
+	pointcut function():(within(AOPDemo) && call(public * *(..)))||
+	!within(AOPDemo) && !within(SequenceAspect) 
+	                	&& execution(public * *.*(..))
+	               	 && !execution(*.new(..));	
 	
 	after(): function(){
 		System.out.println("After function() Actual method is "+ thisJoinPoint.getSignature().toString());		
@@ -41,6 +46,14 @@ public aspect SequenceAspect {
      	}
 		
 		else if(joinPointType.trim().equals("execution")) {	
+			if(prevType.equals("call") && prevMethod.equals(methodName) )
+			{
+				System.out.println("Should be skipped");
+			    prevType="";
+			    prevMethod="";
+			}
+			else
+			{
 			Map.Entry<String, String> maxEntry = null;
 			for (Map.Entry<String, String> entry : childMap.entrySet())
 			{
@@ -54,16 +67,23 @@ public aspect SequenceAspect {
 			doneMap.put(maxEntry.getKey().toString(), "0");
 			startMap.remove(maxEntry.getValue());
 			System.out.println(maxEntry.getKey().toString()+ "Map value is "+doneMap.get(maxEntry.getKey().toString()));		    
-		} 
-		
+
+			} 
+		}
 	}
 	
 	
 	before(): function(){
-		System.out.println("**********************aspect before:**********************");									
+		System.out.println("**********************aspect before:**********************"+thisJoinPoint.getSignature());									
 		Integer level=0;
 		System.out.println("Object type"+thisJoinPoint.getTarget().getClass());
 		setFromToDetails(thisJoinPoint);
+		System.out.println(joinPointType.trim()+methodName);
+		if(prevType.equals("call") && prevMethod.equals(methodName) )
+		{
+			System.out.println("Should be skipped");
+		}
+		else{
 		System.out.println("fromClass is "+fromClass);
 		System.out.println("toClass is "+toClass);
 		
@@ -77,6 +97,9 @@ public aspect SequenceAspect {
 			messageVariable+=fromClass+" ->"+ toClass+": "+parentMap.get(fromClass+methodName+sequence)+" "+methodName+" : "+returnType+"\n";		
 			leftClass=toClass;
 			startMap.put(Integer.toString(sequence), toClass);
+			prevType=joinPointType.trim();
+			prevMethod=methodName;
+			System.out.println(prevType+prevMethod);
 		}
 		
 		//if type is execute increment level
@@ -141,7 +164,10 @@ public aspect SequenceAspect {
 		}	
 		System.out.println("GENERATESEQUENCE INVOKED");
 		generateSequence(messageVariable);
+		}
 	}
+	
+		
 	
 	//set joinPointdetails	
 	public void setFromToDetails(org.aspectj.lang.JoinPoint thisJoinPoint){		
@@ -155,7 +181,8 @@ public aspect SequenceAspect {
 		methodName = splitToClass[splitToClass.length-1];
 		joinPointType=thisJoinPoint.toString().split("\\(")[0];
 		returnType = splitToClass[0].split(" ")[0];	
-		toClass=thisJoinPoint.getTarget().getClass().getName();		
+		toClass=thisJoinPoint.getTarget().getClass().getName();
+		toClass=toClass.substring(toClass.lastIndexOf('.') + 1);
 	}
 	
 	public void generateSequence(String str){
@@ -166,11 +193,10 @@ public aspect SequenceAspect {
 	    System.out.println("finalval is "+finalVal);	    
 	    plantUmlSource.append(finalVal);	            	          
         plantUmlSource.append("@enduml");
-	    SourceStringReader reader = new SourceStringReader(plantUmlSource.toString());	    
-	    System.out.println(plantUmlSource.toString());
+	    SourceStringReader reader = new SourceStringReader(plantUmlSource.toString());	    	    
 	    FileOutputStream output = null;	    
 		try {
-			output = new FileOutputStream(new File("E:/SJSU/SEM1/202-SSE/PP/UmlParserSeqNew.png"));
+			output = new FileOutputStream(new File("E:/SJSU/SEM1/202-SSE/PP/UmlParserSeq2.png"));
 		} catch (FileNotFoundException e) {			
 		}
 	    try {
