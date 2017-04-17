@@ -32,7 +32,10 @@ public class UmlClassParser {
 	HashMap<String, Boolean> listClassInterface=new HashMap<String, Boolean>();
 	HashMap<String, String> association=new HashMap<String, String>();
 	List<String> replaceGetSet=new ArrayList<String>();
-		
+	String relationOutput="";
+	String attributeOutput="";
+	String relationOutputFinal="";
+	String attributeOutputFinal="";
 	UmlClassParser(File srcFolder, String outputFile){
 		this.srcFolder = srcFolder;
 		this.outputFile = outputFile;
@@ -44,10 +47,14 @@ public class UmlClassParser {
 		/*Get Class and Interface list*/
 		getClassInterfaceName(compilationunitArray);
 		/*Loop through individual file*/
-        for (CompilationUnit cu : compilationunitArray)
-            output+= getDetails(cu); 
-        /*Get association multiplicity*/
+        for (CompilationUnit cu : compilationunitArray){
+             getDetails(cu);
+             relationOutputFinal+=relationOutput;
+             attributeOutputFinal+=attributeOutput;
+        }
+        /*Get association multiplicity*/             
         getAssociationValue();
+        output=attributeOutputFinal+relationOutputFinal;
         output=output.replace("?","");
         /*Generate the diagram*/
 		UmlDiagram.generatePNG(output, outputFile);
@@ -65,7 +72,7 @@ public class UmlClassParser {
    }
     
    /* Get the complete details of the java files */
-    private String getDetails(CompilationUnit cu2) {
+    private void getDetails(CompilationUnit cu2) {
     	    String intOutput="";
     	    String interfaceMapping="";
     	    String extendsMapping="";
@@ -78,11 +85,12 @@ public class UmlClassParser {
                 ClassOrInterfaceDeclaration coi = (ClassOrInterfaceDeclaration) n;
                 String className=coi.getName().toString();                
                 if (coi.isInterface()){
-                	fieldMapping+="[<<interface>>;"+coi.getName()+"]";
+                	fieldMapping+="[«interface»;"+coi.getName()+"|";
                 }
                 else{
                 	System.out.println(coi.getName()+" "+coi.isInterface());
-                	fieldMapping+="["+coi.getName()+"|";                
+                	fieldMapping+="["+coi.getName()+"|";   
+                }
                 	List<BodyDeclaration<?>> bd = ((TypeDeclaration<?>) n).getMembers();                	
                 	for(BodyDeclaration<?> b: bd){                		
                 		String fieldMod="";
@@ -113,7 +121,7 @@ public class UmlClassParser {
     							//if java source exists for the type, get the association
     							 if (listClassInterface.containsKey(fieldType)) {
     								if(listClassInterface.get(fieldType)==true)    								
-    								  mapAssociationValue(className,"<<interface>>;"+fieldType,"?-1");
+    								  mapAssociationValue(className,"«interface»;"+fieldType,"?-1");
     								else
     									mapAssociationValue(className,fieldType,"?-1");	
     							}
@@ -124,7 +132,7 @@ public class UmlClassParser {
     							  fieldType=fieldType.substring(fieldType.indexOf("<")+1,fieldType.indexOf(">")); 
     							  
     							  if(listClassInterface.get(fieldType)==true) 
-    								  mapAssociationValue(className,"<<interface>>;"+fieldType,"?-0..*");
+    								  mapAssociationValue(className,"«interface»;"+fieldType,"?-0..*");
     							  else
     								  mapAssociationValue(className,fieldType,"?-0..*");
     							}
@@ -228,7 +236,7 @@ public class UmlClassParser {
 		    				}    				
     				  }    					
                  }
-            } 
+           // } 
                 if (!coi.getImplementedTypes().isEmpty())
                 {
                 	System.out.println(className+" has interfaces ");
@@ -243,19 +251,19 @@ public class UmlClassParser {
                 
                 
          }
-            intOutput="|"+fieldMapping+"|"+methodMapping+"],"+interfaceMapping+extendsMapping+usesMapping+",";
+            attributeOutput="|"+fieldMapping+"|"+methodMapping+"],";
+            relationOutput=","+interfaceMapping+extendsMapping+usesMapping+",";
             //Replace private attribute have getter and setter to public
         	for (String fieldname : replaceGetSet) {
-        		intOutput=intOutput.replaceAll("-"+fieldname,"+"+fieldname);
-        	}        	        
-            return intOutput;
+        		attributeOutput=attributeOutput.replaceAll("-"+fieldname,"+"+fieldname);
+        	}        	                    
     }
     
     public String implementsInterface(String className, NodeList<ClassOrInterfaceType> interfaceList ){
     	String interfaceMapping="";        
         for (int i = 0; i < interfaceList.size(); i++) {
 			System.out.println(interfaceList.get(i));
-			interfaceMapping+=",[<<interface>>;"+interfaceList.get(i)+"]^-.-"+"["+className+"]";			
+			interfaceMapping+=",[«interface»;"+interfaceList.get(i)+"]^-.-"+"["+className+"]";			
         }
         return interfaceMapping;
     }
@@ -275,8 +283,9 @@ public class UmlClassParser {
         if(listClassInterface.get(methodParamType)==false) {			
 			//usesMapping+=",["+className+"]uses -.->["+methodParamType+"]";			
         }
-        else if(listClassInterface.get(methodParamType)==true) {			
-			usesMapping+=",["+className+"]uses -.->[<<interface>>;"+methodParamType+"]";
+        else if(listClassInterface.get(methodParamType)==true && listClassInterface.get(className)==false ) {
+        	System.out.println("ENetering here"+listClassInterface.get(className));
+			usesMapping+=",["+className+"]uses -.->[«interface»;"+methodParamType+"]";
         }
         return usesMapping;
     }     
@@ -310,7 +319,7 @@ public class UmlClassParser {
     	 for (String key : association.keySet()) {
     		   String finalInput=key.replace("][", "]"+association.get(key)+"[");
     		   System.out.println(finalInput);
-    		   output+=finalInput+",";
+    		   relationOutputFinal+=finalInput+",";
     		}
 
     }
