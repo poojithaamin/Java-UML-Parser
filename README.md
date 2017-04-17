@@ -1,6 +1,7 @@
 # Java-UML-Parser
 Parser which converts Java Source Code into a UML Class Diagram or Sequence Diagram.
 
+Libraries Used:
 Parser - Java Parser Library
 https://github.com/javaparser/javaparser
 
@@ -12,7 +13,7 @@ Internet Connection is necessary for the program to run
 
 To generate the UML Class Diagram, the following command should be used
 
-==> UmlParser sourcefoldername outputfilename
+==> java -jar UmlParser.jar TestCaseFolderPath outputfile.png
 
--sourcefoldername will have the java source files for which the UML class diagram is to be generated
--outputfilename will be the name of the output file
+-TestCaseFolderPath will have the java source files for which the UML class diagram is to be generated
+-outputfile.png will be the name of the output file
