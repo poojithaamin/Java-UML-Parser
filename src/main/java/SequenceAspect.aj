@@ -166,9 +166,9 @@ public aspect SequenceAspect {
         plantUmlSource.append("@enduml");
 	    SourceStringReader reader = new SourceStringReader(plantUmlSource.toString());	    	    
 	    FileOutputStream output = null;	 
-	    String currentPath = new File(".").getAbsolutePath();
-	    currentPath = currentPath.replace(".", "");
-	    String outputPath = currentPath + "/" + "sequence_image" + ".png";
+	    String current = new File(".").getAbsolutePath();
+	    current = current.replace(".", "");
+	    String outputPath = current + "/" +"sequence_image"+".png";
 		try {
 			output = new FileOutputStream(new File(outputPath));
 		} catch (FileNotFoundException e) {			
