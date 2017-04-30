@@ -22,7 +22,7 @@ public aspect SequenceAspect {
 	String prevType="";
 	String prevSequence="";
 	String mainClass="";
-	
+	int resetFlag=1;
 	
 	int level=0;
 		
@@ -31,11 +31,12 @@ public aspect SequenceAspect {
 	HashMap<String, String> fromMap = new HashMap<String, String>();	
 	
 
-		pointcut function(Object o) :  !within(myAspect) && target(o) 
-		&& execution(public * *.*(..))
-		 && !execution(*.new(..)) ||(!within(myAspect)
-			&& initialization(*.new(..)) && target(o));
-		
+		pointcut function(Object o) :  !within(SequenceAspect) && target(o) 
+		&& execution( * *.*(..))
+		 && !execution(*.new(..)) ;		 
+		 
+		 //||(!within(SequenceAspect)
+		//	&& initialization(*.new(..)) && target(o));		
 		//||(!within(myAspect)
 		//&& execution(*.new(..)) && target(o));	
 
@@ -60,7 +61,11 @@ public aspect SequenceAspect {
 				}
 			}			
 		doneMap.put(afterValue, "done");
+		String value = childMap.get(afterValue);
+		String first_word = value.split("#")[0];
 		//System.out.println("Deleted afterValue"+afterValue);
+		messageVariable+="\ndeactivate "+first_word+"\n";
+		generateSequence(messageVariable);
 	}
 	
 	
@@ -81,9 +86,23 @@ public aspect SequenceAspect {
 		}			
 		if(maxValue.equals("")){
 			System.out.println("parent block");
+			if(methodName.equals("attach(Observer)") && resetFlag==1){
+				sequence=1;
+				resetFlag=0;
+				doneMap.remove("1");
+				String[] lines = messageVariable.split("\n");
+
+				messageVariable="";
+				int Arraylength = lines.length;    
+
+				for(int i=8;i<Arraylength;i++){
+
+					messageVariable+=(lines[i]+"\n");
+				}
+			}				
 			sequenceValue+=sequence++;
 			fromClass=mainClass;
-			level=1;
+			level=1;						
 		}
 		else{			
 			System.out.println("child block");
@@ -118,8 +137,8 @@ public aspect SequenceAspect {
 		System.out.println("toClass is "+toClass);
 		System.out.println("methodName "+methodName);
 		System.out.println("sequenceValue "+sequenceValue);
-		childMap.put(sequenceValue, fromClass+toClass+methodName);
-		messageVariable+=fromClass+" ->"+ toClass+": "+sequenceValue+" "+methodName+" : "+returnType+"\n";
+		childMap.put(sequenceValue, toClass+"#"+fromClass+methodName);
+		messageVariable+=fromClass+" ->"+ toClass+": "+sequenceValue+" "+methodName+" : "+returnType+"\n"+"activate "+toClass+"\n";
 		fromMap.put(sequenceValue, fromClass);
 		fromClass = toClass;	
 		prevSequence=sequenceValue;				
@@ -146,9 +165,12 @@ public aspect SequenceAspect {
 	    plantUmlSource.append(finalVal);	            	          
         plantUmlSource.append("@enduml");
 	    SourceStringReader reader = new SourceStringReader(plantUmlSource.toString());	    	    
-	    FileOutputStream output = null;	    
+	    FileOutputStream output = null;	 
+	    String currentPath = new File(".").getAbsolutePath();
+	    currentPath = currentPath.replace(".", "");
+	    String outputPath = currentPath + "/" + "sequence_image" + ".png";
 		try {
-			output = new FileOutputStream(new File("E:/SJSU/SEM1/202-SSE/PP/UmlParserSeq3.png"));
+			output = new FileOutputStream(new File(outputPath));
 		} catch (FileNotFoundException e) {			
 		}
 	    try {
