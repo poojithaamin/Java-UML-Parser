@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import net.sourceforge.plantuml.SourceStringReader;
 
-public aspect SequenceAspect {
+public aspect ParseSequence {
 	
 	public String messageVariable = "";
 	public int sequence=1;
