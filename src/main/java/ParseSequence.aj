@@ -31,7 +31,7 @@ public aspect ParseSequence {
 	HashMap<String, String> fromMap = new HashMap<String, String>();	
 	
 
-		pointcut function(Object o) :  !within(SequenceAspect) && target(o) 
+		pointcut function(Object o) :  !within(ParseSequence) && target(o) 
 		&& execution( * *.*(..))
 		 && !execution(*.new(..)) ;		 
 		 
