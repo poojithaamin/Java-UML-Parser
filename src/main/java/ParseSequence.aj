@@ -168,7 +168,7 @@ public aspect ParseSequence {
 	    FileOutputStream output = null;	 
 	    String current = new File(".").getAbsolutePath();
 	    current = current.replace(".", "");
-	    String outputPath = current + "/" +"sequence_image"+".png";
+	    String outputPath = current + "/" +"final_image"+".png";
 		try {
 			output = new FileOutputStream(new File(outputPath));
 		} catch (FileNotFoundException e) {			
