@@ -7,6 +7,7 @@ a)	Java JDK version 1.8
 b)	Internet connection
 
 Tools and Libraries used for building the tool:
+
 a)	JavaParser 3.2.0 - http://javaparser.org/
 JavaParser is a simple and lightweight set of tools that is used for getting an Abstract Syntax Tree (AST) by parsing the Java code which can be further processed as per our requirement.
 
@@ -15,11 +16,13 @@ This is a free online tool which takes the URL generated from the UML Parser app
 The URL contains the class, method, attributes, interface and relationship details in a specific format. This requires an active internet connection to work.
 
 Run/Compile Instructions:
+
 a)	Download the jar file to any directory.
 b)	Open the command prompt and go the above directory.
 c)	Pass the following arguments to the code:
 1.	Full path of the folder that contains the java source files. 
 2.	Name of the output png file.
+
 The file will be created in the same folder, where the java source files exists.
 Example:
 	 java -jar umlparser.jar E:\SJSU\SEM1\202-SSE\PP\srcFolder\test4 new_test4.png
